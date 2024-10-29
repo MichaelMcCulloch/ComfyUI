@@ -21,6 +21,8 @@ import logging
 from enum import Enum
 from comfy.cli_args import args
 import torch
+import torchao
+
 import sys
 import platform
 
@@ -329,6 +331,10 @@ class LoadedModel:
         if is_intel_xpu() and not args.disable_ipex_optimize and 'ipex' in globals() and self.real_model is not None:
             with torch.no_grad():
                 self.real_model = ipex.optimize(self.real_model.eval(), inplace=True, graph_mode=True, concat_linear=True)
+
+        if self.real_model is not None:
+            torch.set_float32_matmul_precision("high")
+            self.real_model = torchao.autoquant(torch.compile(self.real_model))
 
         self.weights_loaded = True
         return self.real_model
